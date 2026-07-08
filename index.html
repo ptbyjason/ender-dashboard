@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Medical Fitness Pros — Training Dashboard</title>
+<style>
+  :root {
+    --green-dark:#1f5f4a; --green-mid:#2f7f60; --green:#3a9b73;
+    --green-pale:#e9f3ee; --green-border:#c7e0d2;
+    --ink:#33403a; --ink-soft:#5a6660; --ink-faint:#8a948d;
+    --bg:#f2f5f3; --card:#fff; --card-border:#dfe8e3;
+    --amber-bg:#fdf4d9; --amber:#d9a407; --amber-ink:#6e5a17;
+    --red-bg:#fdeaea; --red-ink:#a33b3b;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+
+  /* gate */
+  #gate{position:fixed;inset:0;background:linear-gradient(125deg,var(--green-dark),var(--green-mid));display:flex;align-items:center;justify-content:center;z-index:50}
+  .gate-card{background:#fff;border-radius:14px;padding:34px 36px;max-width:360px;width:92%;text-align:center;box-shadow:0 20px 60px #0004}
+  .gate-card .logo{font-weight:800;letter-spacing:.12em;font-size:12px;color:var(--green-mid)}
+  .gate-card h1{font-size:20px;color:var(--green-dark);margin:8px 0 4px}
+  .gate-card p{font-size:13px;color:var(--ink-soft);margin-bottom:16px}
+  .gate-card input{width:100%;padding:12px;border:1.5px solid var(--card-border);border-radius:9px;font-size:18px;text-align:center;letter-spacing:.2em}
+  .gate-card input:focus{outline:none;border-color:var(--green)}
+  .gate-err{color:var(--red-ink);font-size:12.5px;margin-top:8px;min-height:16px}
+  .gate-card button{margin-top:12px;width:100%}
+
+  .topbar{background:linear-gradient(125deg,var(--green-dark) 0%,var(--green-mid) 100%);color:#fff;padding:16px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .logo-line{font-weight:800;letter-spacing:.12em;font-size:12px;color:#b9e2d0}
+  .topbar h1{font-size:20px;font-weight:800;flex:1 1 auto}
+  .phase-chip{background:#ffffff1f;border:1px solid #ffffff40;border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:700}
+  .phase-chip small{display:block;font-weight:400;font-size:10.5px;color:#cfe6da}
+  .sync-dot{font-size:10.5px;font-weight:700;letter-spacing:.05em;padding:4px 10px;border-radius:10px;background:#ffffff22;border:1px solid #ffffff40}
+
+  .wrap{max-width:1200px;margin:0 auto;padding:18px 16px 46px}
+  .strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .stat{background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:12px 16px}
+  .stat .num{font-size:24px;font-weight:800;color:var(--green-dark)}
+  .stat .lbl{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-top:2px}
+  .stat .sub{font-size:11.5px;color:var(--ink-soft);margin-top:3px}
+  .stat.good{border-top:3px solid var(--green)}
+  .stat.warn{border-top:3px solid var(--amber)}
+
+  .grid{display:grid;grid-template-columns:1.55fr 1fr;gap:15px;align-items:start}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}.strip{grid-template-columns:repeat(2,1fr)}}
+  .col{display:flex;flex-direction:column;gap:15px}
+  .card{background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:16px 18px}
+  .card h2{font-size:15px;font-weight:800;color:var(--green-dark);border-left:4px solid var(--green);padding-left:10px;margin-bottom:12px}
+  .card h2 .tag{float:right;font-size:10px;font-weight:700;background:var(--green-pale);color:var(--green-mid);border-radius:10px;padding:3px 10px;letter-spacing:.05em}
+
+  .phases{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+  .phase{flex:1;min-width:110px;border-radius:6px;padding:8px 10px;font-size:11.5px;font-weight:700;background:var(--green-pale);color:var(--green-mid);border:1px solid var(--green-border)}
+  .phase.done{background:var(--green-dark);color:#fff;border-color:var(--green-dark)}
+  .phase.active{background:var(--green);color:#fff;border-color:var(--green);box-shadow:0 0 0 3px #3a9b7333}
+  .phase small{display:block;font-weight:400;font-size:10px;opacity:.85}
+  .phase-note{font-size:12.5px;color:var(--ink-soft)}
+
+  /* weekly targets */
+  .targets{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .target{flex:1;min-width:130px;border:1px solid var(--card-border);border-radius:8px;padding:8px 12px;background:#fbfdfc;font-size:12px}
+  .target b{display:block;font-size:15px;color:var(--green-dark)}
+  .target.met{border-color:var(--green);background:var(--green-pale)}
+
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  @media (max-width:600px){.week{grid-template-columns:repeat(4,1fr)}}
+  .day{border:1px solid var(--card-border);border-radius:8px;padding:8px 5px;text-align:center;font-size:11px;min-height:96px;cursor:pointer;background:#fff;user-select:none}
+  .day .d{font-weight:800;color:var(--ink-soft);font-size:10px;letter-spacing:.05em}
+  .day .dt{font-size:9px;color:var(--ink-faint)}
+  .day .ico{font-size:19px;margin:5px 0 3px;display:block}
+  .day.session{background:var(--green-pale);border-color:var(--green-border)}
+  .day.ball{background:#fdfaf0;border-color:#ecdfb4}
+  .day.rest{background:#f7f9f8}
+  .day.today{outline:3px solid var(--green);outline-offset:-1px}
+  .day .what{font-weight:700;color:var(--green-dark);line-height:1.25;font-size:10.5px}
+  .day.rest .what{color:var(--ink-faint)}
+  .day.empty .what{color:var(--ink-faint);font-weight:400}
+  .day .plan-flag{display:inline-block;margin-top:4px;font-size:8.5px;font-weight:700;letter-spacing:.05em;color:var(--ink-faint);border:1px solid var(--card-border);border-radius:8px;padding:1px 6px}
+  .day .plan-flag.done{color:#fff;background:var(--green);border-color:var(--green)}
+  .hint{font-size:11px;color:var(--ink-faint);margin-top:8px}
+
+  .extra-box{margin-top:12px;border:1px dashed var(--green-border);border-radius:9px;padding:10px 13px;background:#fbfdfc}
+  .extra-title{font-size:12.5px;font-weight:800;color:var(--green-dark)}
+  .extra-sub{font-size:11px;color:var(--ink-soft);margin:3px 0 8px}
+  .extra-form{display:flex;gap:6px;flex-wrap:wrap}
+  .extra-form select,.extra-form input{border:1px solid var(--card-border);border-radius:8px;padding:8px;font-size:12.5px}
+  .extra-form input[type=number]{width:70px}
+  .extra-form input:not([type=number]){flex:1;min-width:140px}
+  .extra-form select:focus,.extra-form input:focus{outline:none;border-color:var(--green)}
+  .day .xtra{display:block;margin-top:3px;font-size:8.5px;font-weight:700;color:#8a6d0b;background:var(--amber-bg);border-radius:8px;padding:1px 4px}
+
+  .checkin-q{font-size:13.5px;font-weight:700;margin-bottom:8px}
+  .faces{display:flex;gap:7px}
+  .face{flex:1;border:1px solid var(--card-border);border-radius:10px;background:#fbfdfc;font-size:23px;padding:8px 0 5px;cursor:pointer;text-align:center;transition:all .15s}
+  .face span{display:block;font-size:10px;font-weight:700;color:var(--ink-soft);margin-top:2px}
+  .face:hover{border-color:var(--green)}
+  .face.sel{background:var(--green-pale);border-color:var(--green);box-shadow:0 0 0 2px #3a9b7333}
+  .checkin-msg{margin-top:10px;font-size:12.5px;border-radius:7px;padding:9px 12px;display:none}
+  .checkin-msg.ok{display:block;background:var(--green-pale);color:#2c4339;border-left:3px solid var(--green)}
+  .checkin-msg.flag{display:block;background:var(--amber-bg);color:var(--amber-ink);border-left:3px solid var(--amber)}
+
+  .trend{display:flex;align-items:flex-end;gap:4px;height:86px;padding-top:16px}
+  .bar{flex:1;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#41a37c,#2d7a5c);position:relative;min-height:5px}
+  .bar.hi{background:linear-gradient(180deg,#e2b73e,#cf9d1d)}
+  .bar.none{background:#e6ebe7}
+  .bar b{position:absolute;top:-16px;left:0;right:0;font-size:9px;text-align:center;color:var(--ink-soft);font-weight:700}
+  .trend-lbls{display:flex;gap:4px;margin-top:4px}
+  .trend-lbls span{flex:1;text-align:center;font-size:8.5px;color:var(--ink-faint);font-weight:700}
+  .legend{font-size:11px;color:var(--ink-faint);margin-top:8px}
+
+  .score-row{margin:10px 0}
+  .score-row .lbl{font-size:12.5px;font-weight:700;display:flex;justify-content:space-between;margin-bottom:4px}
+  .score-row .lbl em{font-style:normal;color:var(--green-mid)}
+  .track{background:#e6ebe7;border-radius:8px;height:14px;position:relative}
+  .fill{background:linear-gradient(90deg,#2d7a5c,#41a37c);height:14px;border-radius:8px;max-width:100%}
+  .goal-tick{position:absolute;top:-3px;bottom:-3px;width:3px;border-radius:2px;background:var(--amber)}
+  .score-note{font-size:11px;color:var(--ink-faint);margin-top:8px}
+  .mini-link{font-size:11.5px;color:var(--green-mid);cursor:pointer;text-decoration:underline}
+
+  .habits{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  @media (max-width:600px){.habits{grid-template-columns:1fr}}
+  .habit{border:1px solid var(--card-border);border-radius:9px;padding:10px 12px;background:#fbfdfc}
+  .habit .h-top{display:flex;justify-content:space-between;align-items:center;gap:6px}
+  .habit .h-name{font-size:12.5px;font-weight:800;color:var(--green-dark)}
+  .habit .streak{font-size:11.5px;font-weight:800;color:var(--green-mid);background:var(--green-pale);padding:2px 9px;border-radius:10px;white-space:nowrap}
+  .dots{margin-top:8px;display:flex;gap:4px}
+  .dot{width:15px;height:15px;border-radius:50%;background:#e3e9e5;cursor:pointer}
+  .dot.on{background:var(--green)}
+  .dot.today{outline:2px solid var(--green-dark);outline-offset:1px}
+  .habit .h-sub{font-size:10.5px;color:var(--ink-faint);margin-top:6px}
+
+  .loadmeter .track{height:18px}
+  .loadmeter .fill{height:18px}
+  .loadmeter .cap{font-size:11.5px;color:var(--ink-soft);margin-top:6px}
+  .loadmeter .cap b{color:var(--green-dark)}
+
+  .note{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #eef2ef}
+  .note:last-child{border-bottom:none}
+  .note .who{flex:0 0 34px;width:34px;height:34px;border-radius:50%;background:var(--green-dark);color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center}
+  .note .who.fam{background:var(--amber)}
+  .note .who.auto{background:var(--red-ink)}
+  .note .txt{font-size:12.5px}
+  .note .meta{font-size:10.5px;color:var(--ink-faint);margin-top:1px}
+  .note-form{display:flex;gap:7px;margin-top:10px}
+  .note-form select,.note-form input{border:1px solid var(--card-border);border-radius:8px;padding:8px;font-size:12.5px}
+  .note-form input{flex:1}
+  .note-form select:focus,.note-form input:focus{outline:none;border-color:var(--green)}
+
+  .btn{display:inline-block;background:var(--green-dark);color:#fff;border:none;border-radius:8px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer}
+  .btn:hover{background:var(--green-mid)}
+  footer{text-align:center;font-size:11px;color:var(--ink-faint);padding:16px}
+</style>
+</head>
+<body>
+
+<!-- ================================================================
+     CLIENT CONFIG — this is the only block you edit per client.
+     Copy this whole folder for a new client and change these values.
+================================================================= -->
+<script>
+const CONFIG = {
+  clientFirstName: "Ender",
+  familyCode: "GOAL2026",          // the code the family types to open the dashboard
+  clientKey: "ender-k7x2m9",       // unique, unguessable id — used as the database record name
+  familyMembers: ["Ender", "Mom", "Dad"],
+  trainerName: "Coach Jason",
+  trainerInitials: "JT",
+
+  planStartDate: "2026-07-06",     // Monday of Week 1
+  reassessmentDate: "2026-08-03",   // mid-point re-test after Phase 2 (Rebuild); September full re-test follows
+  weeklyLoadCapHours: 10,          // age-based guideline
+
+  phases: [
+    { name: "Reset",   weeks: [1,2], focus: "Right hip stability and right foot strength. Light, fun ball work only — nothing explosive. All sprinting, jumping, treadmill, sand running, and games are paused." },
+    { name: "Rebuild", weeks: [3,4], focus: "Right ankle mobility, hip hinge patterning, light jogging & easy direction changes at half speed. Still no games, no resisted sprints, no jumping." },
+    { name: "Reload",  weeks: [5,6], focus: "Right hip rotation and integration. Controlled team practice returns (2x/week), build toward 75% sprints if pain-free. Max one light scrimmage." },
+    { name: "Return",  weeks: [7,8], focus: "Full team practice. Full speed if pain-free 2 straight weeks. One game per weekend. Corrective work drops to maintenance." }
+  ],
+
+  // Weekly targets — the week is flexible; sessions can land on ANY days.
+  // The family taps days to plan/log them. Edit these when the phase changes.
+  weekPlan: {
+    types: {
+      session: { icon:"💪", label:"Trainer 60 min",  hours:1.0  },
+      ball:    { icon:"⚽", label:"Light ball work",  hours:0.5  },
+      rest:    { icon:"😴", label:"Rest day",         hours:0    }
+    },
+    targets: { session:3, ball:2, rest:2 },   // per week: 3 trainer sessions, ~2 ball days, at least 2 rest days
+    targetLabels: { session:"Trainer sessions", ball:"Ball-work days", rest:"Rest days (min)" }
+  },
+
+  scores: {
+    baseline: { overall:59, sagittal:58, frontal:58, transverse:60 },
+    goals:    { overall:75, sagittal:74, frontal:75, transverse:76 },
+    labels:   { overall:"Overall movement quality", sagittal:"Forward & backward", frontal:"Side to side", transverse:"Rotation" }
+  },
+
+  habits: [
+    { id:"routine", name:"5-Min Home Routine", sub:"Ender checks it off after each round", who:"kid" },
+    { id:"sleep",   name:"Sleep 9+ hours",     sub:"Parents log it — the #1 free performance booster", who:"parent" }
+  ],
+
+  // Paste your Firebase web-app config here (see README). Leave as null to run in device-only mode.
+  firebase: null
+  /* Example:
+  firebase: {
+    apiKey: "AIza....",
+    authDomain: "mfp-dashboards.firebaseapp.com",
+    projectId: "mfp-dashboards",
+    storageBucket: "mfp-dashboards.appspot.com",
+    messagingSenderId: "1234567890",
+    appId: "1:1234567890:web:abc123"
+  }
+  */
+};
+</script>
+
+<!-- gate -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="logo">MEDICAL FITNESS PROS</div>
+    <h1 id="gateTitle">Training Dashboard</h1>
+    <p>Enter your family code to open the dashboard.</p>
+    <input id="gateInput" type="text" autocomplete="off" placeholder="FAMILY CODE" onkeydown="if(event.key==='Enter')tryGate()">
+    <div class="gate-err" id="gateErr"></div>
+    <button class="btn" onclick="tryGate()">Open</button>
+  </div>
+</div>
+
+<div class="topbar">
+  <div>
+    <div class="logo-line">MEDICAL FITNESS PROS</div>
+    <h1 id="pageTitle">Training Dashboard</h1>
+  </div>
+  <div class="phase-chip" id="phaseChip">—<small id="phaseChipSub"></small></div>
+  <div class="phase-chip">Family View<small id="famList"></small></div>
+  <div class="sync-dot" id="syncDot">…</div>
+</div>
+
+<div class="wrap">
+  <div class="strip">
+    <div class="stat good"><div class="num" id="statStreak">–</div><div class="lbl">Pain-Free Days</div><div class="sub" id="statStreakSub">Log a check-in to start the streak</div></div>
+    <div class="stat good"><div class="num" id="statLoad">–</div><div class="lbl">This Week's Load</div><div class="sub" id="statLoadSub"></div></div>
+    <div class="stat good"><div class="num" id="statRest">–</div><div class="lbl">Rest Days This Week</div><div class="sub">Recovery is training too</div></div>
+    <div class="stat warn"><div class="num" id="statCountdown">–</div><div class="lbl">Days to Reassessment</div><div class="sub" id="statCountdownSub"></div></div>
+  </div>
+
+  <div class="grid">
+    <div class="col">
+      <div class="card">
+        <h2>The 8-Week Plan <span class="tag" id="planTag">ON TRACK</span></h2>
+        <div class="phases" id="phases"></div>
+        <div class="phase-note" id="phaseNote"></div>
+      </div>
+
+      <div class="card">
+        <h2>This Week <span class="tag">FLEXIBLE — TAP TO PLAN</span></h2>
+        <div class="targets" id="targets"></div>
+        <div class="week" id="week"></div>
+        <div class="hint">Appointments move — that's fine. Tap any day to cycle it: trainer session → ball work → rest → clear. Plan the week today, retap if a session gets rescheduled. Hitting the weekly targets is what matters, not which days.</div>
+
+        <div class="extra-box">
+          <div class="extra-title">Did anything else count today? Log it here 👇</div>
+          <div class="extra-sub">Team practice, a game, backyard drills, a workout with Dad — everything counts, and everything helps Coach plan the right next session. An accurate week = a better program. This is never a gotcha.</div>
+          <div class="extra-form">
+            <select id="extraDay"></select>
+            <input id="extraWhat" placeholder="What was it? (e.g., pickup game)">
+            <input id="extraMins" type="number" min="5" step="5" placeholder="min">
+            <button class="btn" onclick="logExtra()">Log</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Hamstring Check-In Trend <span class="tag">LAST 14 DAYS</span></h2>
+        <div class="trend" id="trend"></div>
+        <div class="trend-lbls" id="trendLbls"></div>
+        <div class="legend">How the hamstring felt each day (0 = great, 4 = hurts). Gray = no check-in that day.</div>
+      </div>
+
+      <div class="card">
+        <h2>Movement Scores <span class="mini-link" style="float:right" onclick="updateScores()">trainer: update scores</span></h2>
+        <div id="scores"></div>
+        <div class="score-note">Gold markers = reassessment targets. Bars update after each re-test.</div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="card">
+        <h2 id="checkinTitle">Daily Check-In</h2>
+        <div class="checkin-q">How does the hamstring feel today?</div>
+        <div class="faces" id="faces"></div>
+        <div class="checkin-msg" id="checkinMsg"></div>
+        <p class="hint" id="checkinHint">Takes 10 seconds. Anything "Sore" or worse posts an alert to the notes feed for the trainer.</p>
+      </div>
+
+      <div class="card">
+        <h2>Family Scoreboard</h2>
+        <div class="habits" id="habits"></div>
+        <div class="hint">Tap today's circle to log it. Streaks build automatically.</div>
+      </div>
+
+      <div class="card">
+        <h2>Weekly Load vs. Guardrail</h2>
+        <div class="loadmeter">
+          <div class="track"><div class="fill" id="loadFill" style="width:0%"></div><div class="goal-tick" style="left:calc(100% - 3px)"></div></div>
+          <div class="cap" id="loadCap"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Notes Between Sessions</h2>
+        <div id="notes"></div>
+        <div class="note-form">
+          <select id="noteWho"></select>
+          <input id="noteText" placeholder="Write a note…" onkeydown="if(event.key==='Enter')addNote()">
+          <button class="btn" onclick="addNote()">Post</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:15px">
+    <h2>Recent Activity</h2>
+    <div id="activity" style="font-size:12.5px;color:var(--ink-soft)"></div>
+  </div>
+
+  <footer>Medical Fitness Pros &bull; 2501 S. Mason Rd., #290-A, Katy, TX &bull; This dashboard tracks training habits and does not provide medical advice.</footer>
+</div>
+
+<script>
+/* ============================== state & storage ============================== */
+const FACES = [
+  {e:"😄",l:"Great"},{e:"🙂",l:"Good"},{e:"😐",l:"Tight"},{e:"😕",l:"Sore"},{e:"😖",l:"Hurts"}
+];
+const DAY_CYCLE = [null, "session", "ball", "rest"];
+let state = { checkins:{}, dayLog:{}, extras:{}, habits:{}, notes:[], scores:null, activity:{} };
+let db = null, saveTimer = null;
+
+const LS_KEY = "mfp_" + CONFIG.clientKey;
+
+function touch(kind){ if(!state.activity) state.activity={}; state.activity[kind] = Date.now(); }
+
+function loadLocal(){
+  try { const raw = localStorage.getItem(LS_KEY); if (raw) state = Object.assign(state, JSON.parse(raw)); } catch(e){}
+}
+function persist(){
+  if (db) {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(()=> db.collection("dashboards").doc(CONFIG.clientKey).set(state, {merge:false}).catch(console.error), 250);
+  } else {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){}
+  }
+  render();
+}
+function initStorage(){
+  if (CONFIG.firebase && window.firebase) {
+    firebase.initializeApp(CONFIG.firebase);
+    db = firebase.firestore();
+    const dot = document.getElementById("syncDot");
+    dot.textContent = "● live sync on";
+    dot.title = "Everyone sees the same data on every device.";
+    db.collection("dashboards").doc(CONFIG.clientKey).onSnapshot(snap=>{
+      if (snap.exists) { state = Object.assign({checkins:{},dayLog:{},extras:{},habits:{},notes:[],scores:null,activity:{}}, snap.data()); }
+      render();
+    }, err=>{ console.error(err); dot.textContent = "sync error"; });
+  } else {
+    const dot = document.getElementById("syncDot");
+    dot.textContent = "saving on this device only — sync not set up yet";
+    dot.title = "Data stays in this browser. Add the Firebase config (see README) to sync across all devices.";
+    loadLocal();
+    render();
+  }
+}
+
+/* ============================== date helpers ============================== */
+function iso(d){ return d.toISOString().slice(0,10); }
+function todayISO(){ const d=new Date(); return iso(new Date(d.getFullYear(),d.getMonth(),d.getDate(),12)); }
+function addDays(isoStr,n){ const d=new Date(isoStr+"T12:00:00"); d.setDate(d.getDate()+n); return iso(d); }
+function daysBetween(a,b){ return Math.round((new Date(b+"T12:00:00") - new Date(a+"T12:00:00"))/86400000); }
+function currentWeekNum(){ return Math.floor(daysBetween(CONFIG.planStartDate, todayISO())/7)+1; }
+function weekMonday(){ const off=((daysBetween(CONFIG.planStartDate,todayISO()))%7+7)%7; return addDays(todayISO(),-off); }
+function weekDates(){ const mon=weekMonday(); return Array.from({length:7},(_,i)=>addDays(mon,i)); }
+
+/* ============================== gate ============================== */
+function tryGate(){
+  const v = document.getElementById("gateInput").value.trim().toUpperCase();
+  if (v === CONFIG.familyCode.toUpperCase()) {
+    localStorage.setItem("mfp_gate_"+CONFIG.clientKey, "1");
+    document.getElementById("gate").style.display="none";
+  } else {
+    document.getElementById("gateErr").textContent = "That code doesn't match — ask your trainer.";
+  }
+}
+
+/* ============================== actions ============================== */
+function checkin(v){
+  const t = todayISO();
+  const first = state.checkins[t] === undefined;
+  state.checkins[t] = v;
+  touch("checkin");
+  if (v >= 3 && first) {
+    state.notes.unshift({ who:"ALERT", role:"auto", text: CONFIG.clientFirstName + " logged \"" + FACES[v].l + "\" today — trainer, please review before the next session.", ts: Date.now() });
+  }
+  persist();
+}
+function cycleDay(dateISO){
+  const cur = state.dayLog[dateISO] || null;
+  const next = DAY_CYCLE[(DAY_CYCLE.indexOf(cur)+1) % DAY_CYCLE.length];
+  if (next === null) delete state.dayLog[dateISO];
+  else state.dayLog[dateISO] = next;
+  touch("session");
+  persist();
+}
+function logExtra(){
+  const day  = document.getElementById("extraDay").value;
+  const mins = parseInt(document.getElementById("extraMins").value, 10);
+  const what = document.getElementById("extraWhat").value.trim() || "Extra activity";
+  if (!mins || mins <= 0) { alert("Add the minutes and tap Log."); return; }
+  const before = weekCounts().hours;
+  if (!state.extras) state.extras = {};
+  state.extras[day] = (state.extras[day] || 0) + mins/60;
+  const after = weekCounts().hours;
+  state.notes.unshift({ who:"Family log", role:"fam", text: what + " — " + mins + " min logged for " + day + ". Thanks for keeping the picture complete!", ts: Date.now() });
+  if (before <= CONFIG.weeklyLoadCapHours && after > CONFIG.weeklyLoadCapHours) {
+    state.notes.unshift({ who:"Load meter", role:"fam", text:"This week's total passed the " + CONFIG.weeklyLoadCapHours + "-hour guardrail. Not a problem — logging it is exactly right. Coach will balance the next session.", ts: Date.now() });
+  }
+  document.getElementById("extraMins").value = "";
+  document.getElementById("extraWhat").value = "";
+  touch("extra");
+  persist();
+}
+function toggleHabit(id, dateISO){
+  if (!state.habits[id]) state.habits[id] = {};
+  state.habits[id][dateISO] = !state.habits[id][dateISO];
+  touch("habit");
+  persist();
+}
+function addNote(){
+  const who = document.getElementById("noteWho").value;
+  const txt = document.getElementById("noteText").value.trim();
+  if (!txt) return;
+  state.notes.unshift({ who, role: (who===CONFIG.trainerName?"trainer":"fam"), text: txt, ts: Date.now() });
+  document.getElementById("noteText").value = "";
+  touch("note");
+  persist();
+}
+function updateScores(){
+  const s = state.scores || Object.assign({}, CONFIG.scores.baseline);
+  const out = {};
+  for (const k of Object.keys(CONFIG.scores.labels)) {
+    const v = prompt(CONFIG.scores.labels[k] + " (%):", s[k]);
+    if (v === null) return;
+    out[k] = Math.max(0, Math.min(100, parseInt(v,10) || s[k]));
+  }
+  state.scores = out;
+  state.notes.unshift({ who: CONFIG.trainerName, role:"trainer", text:"Updated movement scores after re-test: " + Object.keys(out).map(k=>CONFIG.scores.labels[k]+" "+out[k]+"%").join(", ") + ".", ts: Date.now() });
+  persist();
+}
+
+/* ============================== computed ============================== */
+function painFreeStreak(){
+  let n=0, d=todayISO();
+  if (state.checkins[d] === undefined) d = addDays(d,-1);
+  while (state.checkins[d] !== undefined && state.checkins[d] <= 1) { n++; d = addDays(d,-1); }
+  return n;
+}
+function habitStreak(id){
+  const h = state.habits[id]||{};
+  let n=0, d=todayISO();
+  if (!h[d]) d = addDays(d,-1);
+  while (h[d]) { n++; d=addDays(d,-1); }
+  return n;
+}
+function weekCounts(){
+  const counts = { session:0, ball:0, rest:0 }, dates = weekDates();
+  let hours = 0, extraHours = 0;
+  for (const dt of dates) {
+    const typ = state.dayLog[dt];
+    if (typ && counts[typ] !== undefined) { counts[typ]++; hours += CONFIG.weekPlan.types[typ].hours; }
+    if (state.extras && state.extras[dt]) extraHours += state.extras[dt];
+  }
+  return { counts, hours: hours + extraHours, extraHours };
+}
+
+/* ============================== render ============================== */
+function render(){
+  const wk = Math.min(Math.max(currentWeekNum(),1),8);
+  const phase = CONFIG.phases.find(p=>p.weeks.includes(wk)) || CONFIG.phases[CONFIG.phases.length-1];
+  const beforeStart = daysBetween(CONFIG.planStartDate, todayISO()) < 0;
+  const afterEnd = currentWeekNum() > 8;
+
+  document.getElementById("pageTitle").textContent = CONFIG.clientFirstName + "'s Training Dashboard";
+  document.getElementById("gateTitle").textContent = CONFIG.clientFirstName + "'s Training Dashboard";
+  document.getElementById("checkinTitle").textContent = CONFIG.clientFirstName + "'s Daily Check-In";
+  document.getElementById("famList").textContent = CONFIG.familyMembers.join(" • ");
+  document.getElementById("phaseChip").firstChild.textContent =
+    beforeStart ? "Starts " + CONFIG.planStartDate + " " :
+    afterEnd ? "Maintenance " : "Week " + wk + " of 8 • " + phase.name + " Phase ";
+  document.getElementById("phaseChipSub").textContent = weekMonday() + " → " + addDays(weekMonday(),6);
+
+  // phases row
+  document.getElementById("phases").innerHTML = CONFIG.phases.map(p=>{
+    const cls = afterEnd || p.weeks[1] < wk ? "done" : (p.weeks.includes(wk) && !beforeStart ? "active" : "");
+    const mark = (afterEnd || p.weeks[1] < wk) ? " ✓" : (p.weeks.includes(wk) && !beforeStart ? " — now" : "");
+    return `<div class="phase ${cls}">${p.name}<small>Wk ${p.weeks[0]}–${p.weeks[1]}${mark}</small></div>`;
+  }).join("");
+  document.getElementById("phaseNote").innerHTML = "<b>This block's focus:</b> " + phase.focus;
+
+  // weekly targets
+  const { counts, hours } = weekCounts();
+  const tgt = CONFIG.weekPlan.targets;
+  document.getElementById("targets").innerHTML = Object.keys(tgt).map(k=>{
+    const met = counts[k] >= tgt[k];
+    return `<div class="target ${met?'met':''}"><b>${counts[k]} of ${tgt[k]}${k==='rest'?'+':''}</b>${CONFIG.weekPlan.targetLabels[k]}${met?' ✓':''}</div>`;
+  }).join("");
+
+  // week days
+  const dates = weekDates(), t = todayISO();
+  const DOW = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
+  document.getElementById("week").innerHTML = dates.map((dt,i)=>{
+    const typ = state.dayLog[dt] || null;
+    const isToday = dt===t, future = dt>t;
+    const info = typ ? CONFIG.weekPlan.types[typ] : null;
+    const flag = typ ? (future ? `<span class="plan-flag">PLANNED</span>` : `<span class="plan-flag done">✓</span>`) : "";
+    const ex = (state.extras||{})[dt];
+    const exBadge = ex ? `<span class="xtra">+${Math.round(ex*60)}m extra</span>` : "";
+    return `<div class="day ${typ||'empty'} ${isToday?'today':''}" onclick="cycleDay('${dt}')">
+      <div class="d">${DOW[i]}</div><div class="dt">${dt.slice(5).replace("-","/")}</div>
+      <span class="ico">${info?info.icon:"·"}</span>
+      <div class="what">${info?info.label:"tap to plan"}</div>${flag}${exBadge}</div>`;
+  }).join("");
+
+  // stats
+  const streak = painFreeStreak();
+  document.getElementById("statStreak").textContent = streak;
+  document.getElementById("statStreakSub").textContent = streak>0 ? "In a row — keep it going" : "Log a check-in to start the streak";
+  document.getElementById("statLoad").innerHTML = hours.toFixed(1) + ' <span style="font-size:13px">hrs</span>';
+  document.getElementById("statLoadSub").textContent = hours <= CONFIG.weeklyLoadCapHours ? "Under the "+CONFIG.weeklyLoadCapHours+"-hour guardrail ✓" : "Over the guardrail — Coach will balance the next session";
+  document.getElementById("statRest").textContent = counts.rest + " / " + tgt.rest + "+";
+  const cd = Math.max(daysBetween(todayISO(), CONFIG.reassessmentDate),0);
+  document.getElementById("statCountdown").textContent = cd;
+  document.getElementById("statCountdownSub").textContent = "Re-test " + CONFIG.reassessmentDate;
+
+  // load meter
+  document.getElementById("loadFill").style.width = Math.min(hours/CONFIG.weeklyLoadCapHours*100,100) + "%";
+  const { extraHours } = weekCounts();
+  document.getElementById("loadCap").innerHTML = "<b>"+hours.toFixed(1)+" hrs</b> this week of "+CONFIG.weeklyLoadCapHours+"-hour cap (age-based guideline)"
+    + (extraHours>0 ? " — includes <b>"+extraHours.toFixed(1)+" hrs</b> of extra activity. Thanks for logging it; that's how the program stays right." : ". Log ALL activity, including outside soccer — accuracy beats perfection.");
+
+  // extra-day dropdown (this week's days, default today)
+  const exSel = document.getElementById("extraDay");
+  const exOpts = dates.map((dt,i)=>`<option value="${dt}" ${dt===t?'selected':''}>${DOW[i]} ${dt.slice(5).replace("-","/")}${dt===t?' (today)':''}</option>`).join("");
+  if (exSel.innerHTML !== exOpts) exSel.innerHTML = exOpts;
+
+  // check-in faces
+  const cur = state.checkins[t];
+  document.getElementById("faces").innerHTML = FACES.map((f,i)=>
+    `<div class="face ${cur===i?'sel':''}" onclick="checkin(${i})">${f.e}<span>${f.l}</span></div>`).join("");
+  const msg = document.getElementById("checkinMsg");
+  if (cur===undefined){ msg.className="checkin-msg"; }
+  else if (cur<=1){ msg.className="checkin-msg ok"; msg.textContent="Logged! "+(streak>1? streak+" pain-free days and counting. 🎉":"Streak started. 🎉"); }
+  else if (cur===2){ msg.className="checkin-msg ok"; msg.textContent="Logged. A little tightness is worth watching — mention it at the next session."; }
+  else { msg.className="checkin-msg flag"; msg.textContent="Logged — an alert was posted for your trainer. Skip anything explosive today."; }
+
+  // trend
+  let bars="", lbls="";
+  for (let i=13;i>=0;i--){
+    const d = addDays(t,-i), v = state.checkins[d];
+    if (v===undefined){ bars+=`<div class="bar none" style="height:5%"></div>`; }
+    else { bars+=`<div class="bar ${v>=3?'hi':''}" style="height:${Math.max(v/4*100,7)}%"><b>${v}</b></div>`; }
+    lbls+=`<span>${d.slice(8)}</span>`;
+  }
+  document.getElementById("trend").innerHTML=bars;
+  document.getElementById("trendLbls").innerHTML=lbls;
+
+  // scores
+  const s = state.scores || CONFIG.scores.baseline;
+  document.getElementById("scores").innerHTML = Object.keys(CONFIG.scores.labels).map(k=>{
+    const g = CONFIG.scores.goals[k];
+    return `<div class="score-row"><div class="lbl"><span>${CONFIG.scores.labels[k]}</span><em>${s[k]}% → goal ${g}%</em></div>
+      <div class="track"><div class="fill" style="width:${s[k]}%"></div><div class="goal-tick" style="left:${g}%"></div></div></div>`;
+  }).join("");
+
+  // habits
+  const last7 = Array.from({length:7},(_,i)=>addDays(t,-(6-i)));
+  document.getElementById("habits").innerHTML = CONFIG.habits.map(h=>{
+    const hs = habitStreak(h.id), data = state.habits[h.id]||{};
+    const dots = last7.map(d=>`<span class="dot ${data[d]?'on':''} ${d===t?'today':''}" onclick="toggleHabit('${h.id}','${d}')"></span>`).join("");
+    return `<div class="habit"><div class="h-top"><span class="h-name">${h.name}</span><span class="streak">${hs>0?"🔥 "+hs+"-day":"—"}</span></div>
+      <div class="dots">${dots}</div><div class="h-sub">${h.sub}</div></div>`;
+  }).join("");
+
+  // notes
+  const noteHtml = (state.notes||[]).slice(0,30).map(n=>{
+    const ini = n.role==="auto" ? "!" : n.who.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+    const cls = n.role==="trainer" ? "" : (n.role==="auto" ? "auto" : "fam");
+    const when = new Date(n.ts).toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
+    return `<div class="note"><div class="who ${cls}">${ini}</div><div><div class="txt">${escapeHtml(n.text)}</div><div class="meta">${escapeHtml(n.who)} • ${when}</div></div></div>`;
+  }).join("");
+  document.getElementById("notes").innerHTML = noteHtml || '<div class="hint">No notes yet — say hi! 👋</div>';
+
+  // recent activity
+  const act = state.activity || {};
+  const items = [
+    ["checkin", "Last check-in"],
+    ["habit",   "Last scoreboard log"],
+    ["session", "Last week-plan change"],
+    ["extra",   "Last extra-activity log"],
+    ["note",    "Last note"]
+  ].map(([k,lbl]) => lbl + ": " + (act[k] ? fmtWhen(act[k]) : "—"));
+  document.getElementById("activity").innerHTML = items.join(" &nbsp;&bull;&nbsp; ") +
+    '<div style="font-size:10.5px;color:var(--ink-faint);margin-top:5px">Updates automatically whenever anyone logs something — an at-a-glance read on engagement.</div>';
+
+  // note author options
+  const sel = document.getElementById("noteWho");
+  if (!sel.options.length) {
+    [...CONFIG.familyMembers, CONFIG.trainerName].forEach(n=>{
+      const o = document.createElement("option"); o.value=o.textContent=n; sel.appendChild(o);
+    });
+  }
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function fmtWhen(ts){
+  const d = new Date(ts);
+  const time = d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+  const dISO = iso(new Date(d.getFullYear(),d.getMonth(),d.getDate(),12));
+  const gap = daysBetween(dISO, todayISO());
+  if (gap === 0) return "today " + time;
+  if (gap === 1) return "yesterday " + time;
+  return d.toLocaleDateString([], {month:"short", day:"numeric"}) + " " + time;
+}
+
+/* ============================== boot ============================== */
+(function boot(){
+  if (localStorage.getItem("mfp_gate_"+CONFIG.clientKey)==="1") document.getElementById("gate").style.display="none";
+  if (CONFIG.firebase) {
+    const s1=document.createElement("script"); s1.src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js";
+    const s2=document.createElement("script"); s2.src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js";
+    s1.onload=()=>document.head.appendChild(s2);
+    s2.onload=initStorage;
+    document.head.appendChild(s1);
+  } else {
+    initStorage();
+  }
+})();
+</script>
+</body>
+</html>
